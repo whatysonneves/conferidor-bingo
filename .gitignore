@@ -1,1 +1,7 @@
 *.py
+*.spec
+*.ai
+dist/
+build/
+1x/
+5x/

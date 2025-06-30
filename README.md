@@ -1,6 +1,7 @@
 # Conferidor de Cartelas de Bingo
 
 Essa página é capaz de facilitar a conferência de cartelas de bingo que são numeradas;
+
 A página espera que um arquivo com esse padrão seja enviado:
 ```csv
 id;b;i;n;g;o
@@ -13,3 +14,15 @@ id;b;i;n;g;o
 ```
 
 Em seguida, aparece uma página interativa, onde é possível marcar os números que foram sorteados, e as cartelas com mais acertos vão aparecendo em primeiro na lista de cartelas.
+
+## Gerar as cartelas automaticamente
+
+Para gerar as cartelas automaticamente, basta baixar o `Bingo.exe` e executar;
+
+Ao rodar o programa, ele irá perguntar o que deseja fazer, quantas cartelas pretende gerar, e se quer gerar os arquivos `pdf` para facilitar a impressão das cartelas.
+
+## Alterar a imagem de fundo
+
+Para alterar a imagem de fundo, basta criar um novo arquivo `png` chamado `fundo_bingo.png`, mantendo a mesma proporção do arquivo atual: 297x420mm.
+
+Para facilitar, existe um arquivo com este nome na raiz do repositório, basta alterar ele e fazer a arte da forma que desejar.
