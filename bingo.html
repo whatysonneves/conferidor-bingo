@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0 /">
+	<title>Conferidor de Cartelas de Bingo</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+	@keyframes bingoPulse {
+		0% { transform: scale(1); box-shadow: 0 0 0 rgba(34,197,94, 0.4); }
+		50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(34,197,94, 0.8); }
+		100% { transform: scale(1); box-shadow: 0 0 0 rgba(34,197,94, 0.4); }
+	}
+	.animate-bingo {
+		animation: bingoPulse 1.2s ease-in-out infinite;
+	}
+	</style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+	<div class="max-w-5xl mx-auto">
+		<h1 class="text-2xl font-bold text-center mb-6">Conferidor de Cartelas de Bingo</h1>
+
+		<div id="uploadSection" class="border-2 border-dashed border-gray-400 bg-white p-6 rounded-lg mb-6 text-center cursor-pointer" onclick="document.getElementById('csvInput').click();">
+			<p class="text-gray-600">Clique para selecionar o arquivo CSV aqui</p>
+			<input id="csvInput" type="file" accept=".csv" class="hidden" />
+		</div>
+
+		<div id="controls" class="hidden mb-6">
+			<label class="block mb-2 font-medium text-gray-700">Digite os números sorteados (pressione Enter):</label>
+			<input id="numeroInput" type="number" min="1" max="75" class="w-full p-3 border rounded" placeholder="Digite os números sorteados (pressione Enter)" />
+			<div id="numerosSorteados" class="mt-4 flex flex-wrap justify-center w-full gap-2"></div>
+		</div>
+
+		<div id="cartelasContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+	</div>
+
+	<script>
+		let cartelas = [];
+		let numerosSorteados = [];
+
+		// Upload e parse CSV
+		document.getElementById("csvInput").addEventListener("change", async e => {
+			const file = e.target.files[0];
+			if (!file) return;
+
+			const text = await file.text();
+			const linhas = text.trim().split("\n");
+			const headers = linhas[0].split(";").map(h => h.trim().toLowerCase());
+			if (!["id","b","i","n","g","o"].every(h => headers.includes(h))) {
+				alert("CSV inválido. Cabeçalhos esperados: id;b;i;n;g;o");
+				return;
+			}
+
+			cartelas = linhas.slice(1).map(l => {
+				const cols = l.split(";");
+				return {
+					id: cols[0].trim(),
+					b: cols[1].split(",").map(n=>n.trim()),
+					i: cols[2].split(",").map(n=>n.trim()),
+					n: cols[3].split(",").map(n=>n.trim()),
+					g: cols[4].split(",").map(n=>n.trim()),
+					o: cols[5].split(",").map(n=>n.trim())
+				};
+			});
+
+			document.getElementById("controls").classList.remove("hidden");
+			document.getElementById("uploadSection").classList.add("hidden");
+			renderizarNumerosSorteados();
+			renderizarCartelas();
+		});
+
+		// Captura número sorteado
+		document.getElementById("numeroInput").addEventListener("keydown", e => {
+			if (e.key === "Enter") {
+				let num = e.target.value.trim().padStart(2, "0");
+				if (/^\d{2}$/.test(num) && +num>=1 && +num<=75 && !numerosSorteados.includes(num)) {
+					numerosSorteados.push(num);
+					renderizarNumerosSorteados();
+					renderizarCartelas();
+				}
+				e.target.value = "";
+			}
+		});
+
+		function renderizarNumerosSorteados() {
+			const box = document.getElementById("numerosSorteados");
+			box.innerHTML = "";
+			numerosSorteados.forEach(n => {
+				const span = document.createElement("span");
+				span.className = "inline-block bg-blue-500 text-white rounded px-3 py-1 cursor-pointer hover:bg-red-500 transition";
+				span.textContent = n;
+				span.title = "Clique para remover";
+				span.addEventListener("click", () => {
+					const index = numerosSorteados.indexOf(n);
+					if (index > -1) {
+						numerosSorteados.splice(index, 1);
+						span.remove(); // Remove visualmente da tela
+						renderizarCartelas();
+						atualizarNumerosSorteados();
+					}
+				});
+				box.appendChild(span);
+			});
+		}
+
+		function renderizarCartelas() {
+			// Ordena por quantidade de acertos (desc)
+			cartelas.sort((a, b) => {
+				const acertA = contarAcertos(a);
+				const acertB = contarAcertos(b);
+				return acertB - acertA;
+			});
+
+			const cont = document.getElementById("cartelasContainer");
+			cont.innerHTML = "";
+
+			cartelas.forEach(c => {
+				const acertos = contarAcertos(c);
+				const card = document.createElement("div");
+				card.className = `bg-white rounded p-4 transition-transform duration-300 ${
+					acertos === 24 ? "border-4 border-green-500 scale-105 shadow-2xl animate-bingo" : "shadow-md"
+				}`;
+
+				// Título e contagem
+				const title = document.createElement("div");
+				title.innerHTML = `<h2 class="font-bold text-lg">Cartela #${parseInt(c.id) + 1}</h2><span class="text-sm text-gray-600">${acertos} acerto(s)</span>`;
+				card.appendChild(title);
+
+				// Grid 5x5
+				const grid = document.createElement("div");
+				grid.className = "grid grid-cols-5 gap-1 mt-3 text-center font-bold";
+
+				for (let row = 0; row < 5; row++) {
+					["b","i","n","g","o"].forEach(col => {
+						let valor;
+						if (col === "n") {
+							if (row === 2) {
+								valor = "★";
+							} else {
+								// índices ajustados: row<2 => row, else => row-1
+								const idx = row < 2 ? row : row - 1;
+								valor = c.n[idx];
+							}
+						} else {
+							valor = c[col][row];
+						}
+						// highlight se sorteado
+						const marcado = numerosSorteados.includes(valor);
+						const cell = document.createElement("div");
+						cell.textContent = valor;
+						cell.className = `p-2 border rounded ${marcado ? "bg-green-300 text-black" : "bg-gray-200 text-gray-700"}`;
+						grid.appendChild(cell);
+					});
+				}
+
+				card.appendChild(grid);
+				cont.appendChild(card);
+			});
+		}
+
+		function contarAcertos(c) {
+			const todos = [...c.b, ...c.i, ...c.n, ...c.g, ...c.o];
+			return todos.filter(n => numerosSorteados.includes(n)).length;
+		}
+	</script>
+</body>
+</html>
